@@ -1,0 +1,38 @@
+[
+    {
+        "algorithm": "Baseline",
+        "rmse": 1.1238599168296066,
+        "mae": 0.9419550125,
+        "training_time": 0
+    },
+    {
+        "algorithm": "SVD",
+        "rmse": 2.6404161599947997,
+        "mae": 2.3710781385761783,
+        "training_time": 0
+    },
+    {
+        "algorithm": "NMF",
+        "rmse": 2.6246273451931525,
+        "mae": 2.356380743044376,
+        "training_time": 0
+    },
+    {
+        "algorithm": "KNN",
+        "rmse": 0.969229734019778,
+        "mae": 0.7582912192706993,
+        "training_time": 0
+    },
+    {
+        "algorithm": "NCF",
+        "rmse": 0.9338879939581871,
+        "mae": 0.7352938652038574,
+        "training_time": 0
+    },
+    {
+        "algorithm": "AutoRec",
+        "rmse": 0.965773254420682,
+        "mae": 0.7663018703460693,
+        "training_time": 0
+    }
+]

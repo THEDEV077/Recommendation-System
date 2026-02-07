@@ -1,0 +1,25 @@
+# Environments
+venv/
+venv_compat/
+venv_lfm/
+.env
+
+# Datasets
+ml-100k/
+
+# Models (Optional: exclude large binary files)
+models/*.pkl
+models/*.h5
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+
+# IDEs
+.vscode/
+.idea/

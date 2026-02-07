@@ -1,0 +1,13 @@
+streamlit
+pandas
+numpy
+scikit-learn
+scipy
+matplotlib
+seaborn
+plotly
+scikit-surprise
+lightfm
+jupyter
+nbformat>=4.2.0
+requests
