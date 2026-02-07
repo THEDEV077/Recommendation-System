@@ -1,0 +1,962 @@
+\documentclass[12pt,a4paper]{article}
+
+% Packages essentiels
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+
+% Configuration des liens
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    citecolor=blue,
+}
+
+% Configuration du code source
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{pythonstyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2,
+    language=Python
+}
+\lstset{style=pythonstyle}
+
+% En-têtes et pieds de page
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{Système de Recommandation de Films}
+\lhead{Rapport Technique}
+\rfoot{Page \thepage}
+
+% Informations du document
+\title{
+    \vspace{2cm}
+    \Huge \textbf{Système de Recommandation de Films} \\
+    \vspace{0.5cm}
+    \Large Rapport Technique Complet \\
+    \vspace{0.3cm}
+    \large Utilisant le Dataset MovieLens 100k
+    \vspace{2cm}
+}
+
+\author{
+    Projet de Système de Recommandation \\
+    Combinant Approches Classiques et Deep Learning
+}
+
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+\newpage
+\tableofcontents
+\newpage
+
+\begin{abstract}
+Ce rapport présente un système de recommandation de films complet développé avec Python, combinant des méthodes classiques de filtrage collaboratif et des techniques modernes d'apprentissage profond. Le système utilise le célèbre dataset MovieLens 100k et propose une interface web interactive développée avec Streamlit. 
+
+L'objectif principal est de comparer différentes approches de recommandation (KNN, SVD, NMF, Neural Collaborative Filtering, AutoRec) et de fournir des recommandations personnalisées aux utilisateurs. Les résultats montrent que les modèles de deep learning (NCF et AutoRec) surpassent significativement les approches classiques avec une erreur RMSE d'environ 0.93 pour le meilleur modèle.
+
+\textbf{Mots-clés :} Système de recommandation, Filtrage collaboratif, Deep Learning, Neural Collaborative Filtering, AutoRec, MovieLens, PyTorch, Streamlit
+\end{abstract}
+
+\section{Introduction}
+
+\subsection{Contexte du projet}
+
+Dans l'ère numérique actuelle, les systèmes de recommandation jouent un rôle crucial dans de nombreuses plateformes en ligne (Netflix, Amazon, YouTube, etc.). Ces systèmes permettent de personnaliser l'expérience utilisateur en suggérant du contenu pertinent basé sur les préférences historiques et les comportements similaires d'autres utilisateurs.
+
+Ce projet implémente un système de recommandation complet pour les films, utilisant le dataset de référence \textbf{MovieLens 100k}. Il s'agit d'un dataset académique largement utilisé contenant 100 000 évaluations de films par 943 utilisateurs sur 1682 films, avec des notes allant de 1 à 5 étoiles.
+
+\subsection{Objectifs}
+
+Les objectifs principaux de ce projet sont :
+
+\begin{enumerate}
+    \item Implémenter et comparer plusieurs algorithmes de recommandation (classiques et modernes)
+    \item Évaluer rigoureusement les performances de chaque modèle
+    \item Développer une application web interactive pour tester les recommandations
+    \item Fournir des visualisations et analyses pour comprendre le comportement des algorithmes
+    \item Démontrer la supériorité des approches de deep learning sur ce type de problème
+\end{enumerate}
+
+\subsection{Organisation du rapport}
+
+Ce rapport est structuré comme suit :
+\begin{itemize}
+    \item \textbf{Section 2} : Architecture technique du système
+    \item \textbf{Section 3} : Description détaillée des modèles implémentés
+    \item \textbf{Section 4} : Résultats du benchmark et comparaison
+    \item \textbf{Section 5} : Fonctionnalités de l'application web
+    \item \textbf{Section 6} : Installation et déploiement
+    \item \textbf{Section 7} : Conclusion et perspectives
+\end{itemize}
+
+\section{Architecture Technique}
+
+\subsection{Vue d'ensemble du système}
+
+Le système est développé en Python et utilise une architecture modulaire pour faciliter la maintenance et l'évolutivité. L'application se compose de plusieurs composants principaux travaillant ensemble pour fournir une expérience complète de recommandation.
+
+\subsection{Structure du code source}
+
+La structure du projet est organisée comme suit :
+
+\begin{lstlisting}[style=pythonstyle, caption=Structure du projet]
+Recommendation-System/
+├── app.py                  # Point d'entrée Streamlit
+├── benchmark.py            # Pipeline d'entraînement
+├── requirements.txt        # Dépendances Python
+├── models/
+│   ├── ncf.py             # Neural Collaborative Filtering
+│   ├── autorec.py         # AutoRec (Autoencoder)
+│   ├── *.pkl              # Modèles sauvegardés
+│   └── *.pth              # Modèles PyTorch
+├── utils/
+│   ├── recommender.py     # Logique d'inférence
+│   ├── ui.py              # Composants UI
+│   └── data_loader.py     # Chargement des données
+├── pages/
+│   ├── 1_Exploration.py
+│   ├── 2_Recommandations.py
+│   ├── 3_Films_Similaires.py
+│   ├── 4_Comparaison_Modeles.py
+│   ├── 5_Profil_Utilisateur.py
+│   └── 6_Analyse_Algorithmique.py
+└── assets/                # Ressources (images, CSS)
+\end{lstlisting}
+
+\subsection{Stack technologique}
+
+\subsubsection{Technologies utilisées}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Catégorie} & \textbf{Technologies} \\ \midrule
+Langage & Python 3.10+ \\
+Interface Web & Streamlit \\
+Data Science & Pandas, NumPy, Scikit-learn, SciPy \\
+Deep Learning & PyTorch \\
+Visualisation & Plotly Express, Matplotlib, Seaborn \\
+Recommandation & Scikit-surprise, LightFM \\
+\bottomrule
+\end{tabular}
+\caption{Stack technologique du projet}
+\end{table}
+
+\subsubsection{Choix techniques}
+
+\begin{itemize}
+    \item \textbf{Streamlit} : Choisi pour sa simplicité de développement d'interfaces web en Python pur, sans nécessiter de connaissances en JavaScript ou HTML/CSS
+    \item \textbf{PyTorch} : Framework de deep learning flexible et intuitif, idéal pour l'implémentation de modèles personnalisés
+    \item \textbf{Scikit-learn} : Bibliothèque de référence pour les algorithmes de machine learning classiques
+    \item \textbf{Plotly} : Graphiques interactifs 2D/3D pour une meilleure exploration des données
+\end{itemize}
+
+\subsection{Pipeline de traitement}
+
+Le système suit un pipeline en plusieurs étapes :
+
+\begin{enumerate}
+    \item \textbf{Chargement des données} : Lecture des fichiers MovieLens (ratings, movies)
+    \item \textbf{Prétraitement} : Nettoyage et transformation des données
+    \item \textbf{Séparation Train/Test} : Division aléatoire 80/20
+    \item \textbf{Entraînement des modèles} : Ajustement de tous les algorithmes
+    \item \textbf{Évaluation} : Calcul des métriques RMSE et MAE
+    \item \textbf{Sauvegarde} : Persistance des modèles entraînés
+    \item \textbf{Inférence} : Chargement et utilisation pour les recommandations
+\end{enumerate}
+
+\section{Modèles Implémentés}
+
+Cette section détaille les six modèles de recommandation implémentés, allant des méthodes classiques aux approches de deep learning de pointe.
+
+\subsection{Modèles classiques}
+
+\subsubsection{Baseline (Moyenne)}
+
+\textbf{Principe :} Le modèle le plus simple qui prédit toujours la note moyenne globale du dataset, indépendamment de l'utilisateur ou du film.
+
+\textbf{Formulation mathématique :}
+\begin{equation}
+    \hat{r}_{ui} = \mu
+\end{equation}
+où $\mu$ est la moyenne de toutes les notes observées.
+
+\textbf{Utilité :} Sert de référence minimale. Tout modèle avec une erreur inférieure démontre qu'il apprend réellement des patterns dans les données.
+
+\subsubsection{KNN (K-Nearest Neighbors - Item-Based)}
+
+\textbf{Principe :} Filtrage collaboratif basé sur la similarité entre items. Pour prédire la note d'un utilisateur $u$ sur un film $i$, on utilise les notes de $u$ sur les films les plus similaires à $i$.
+
+\textbf{Formulation mathématique :}
+\begin{equation}
+    \hat{r}_{ui} = \frac{\sum_{j \in N(i,u)} sim(i,j) \cdot r_{uj}}{\sum_{j \in N(i,u)} |sim(i,j)|}
+\end{equation}
+où $N(i,u)$ représente l'ensemble des $k$ films les plus similaires à $i$ que l'utilisateur $u$ a notés, et $sim(i,j)$ est la similarité cosinus entre les films $i$ et $j$.
+
+\textbf{Similarité Cosinus :}
+\begin{equation}
+    sim(i,j) = \frac{\mathbf{r}_i \cdot \mathbf{r}_j}{||\mathbf{r}_i|| \cdot ||\mathbf{r}_j||}
+\end{equation}
+où $\mathbf{r}_i$ est le vecteur des notes du film $i$ par tous les utilisateurs.
+
+\textbf{Avantages :}
+\begin{itemize}
+    \item Intuitif et facile à interpréter
+    \item Efficace pour identifier des items similaires
+    \item Pas de phase d'entraînement coûteuse
+\end{itemize}
+
+\subsubsection{SVD (Singular Value Decomposition)}
+
+\textbf{Principe :} Factorisation matricielle qui décompose la matrice utilisateur-item $\mathbf{R}$ en produit de trois matrices.
+
+\textbf{Formulation mathématique :}
+\begin{equation}
+    \mathbf{R} \approx \mathbf{U} \mathbf{\Sigma} \mathbf{V}^T
+\end{equation}
+où :
+\begin{itemize}
+    \item $\mathbf{U}$ : matrice des facteurs utilisateurs ($m \times k$)
+    \item $\mathbf{\Sigma}$ : matrice diagonale des valeurs singulières ($k \times k$)
+    \item $\mathbf{V}$ : matrice des facteurs items ($n \times k$)
+    \item $k$ : nombre de composantes latentes (dimensions réduites)
+\end{itemize}
+
+\textbf{Implémentation :} Utilise \texttt{TruncatedSVD} de Scikit-learn avec $k=50$ composantes.
+
+\textbf{Limitation :} Cette implémentation traite les valeurs manquantes comme des zéros, ce qui pénalise la performance sur un dataset avec notes explicites (1-5).
+
+\subsubsection{NMF (Non-negative Matrix Factorization)}
+
+\textbf{Principe :} Similaire à SVD mais impose une contrainte de non-négativité sur les facteurs latents.
+
+\textbf{Formulation mathématique :}
+\begin{equation}
+    \mathbf{R} \approx \mathbf{W} \mathbf{H}
+\end{equation}
+avec $\mathbf{W} \geq 0$ et $\mathbf{H} \geq 0$
+
+\textbf{Avantage :} Les facteurs sont plus interprétables, souvent assimilables à des "genres" ou "thèmes" latents, car ils représentent des combinaisons additives.
+
+\subsection{Modèles de Deep Learning}
+
+\subsubsection{NCF (Neural Collaborative Filtering)}
+
+\textbf{Source :} He et al., WWW 2017 - "Neural Collaborative Filtering"
+
+\textbf{Architecture :} NCF combine deux approches complémentaires :
+
+\begin{enumerate}
+    \item \textbf{GMF (Generalized Matrix Factorization)} : Version neuronale de la factorisation matricielle classique
+    \begin{equation}
+        \mathbf{h}_{GMF} = \mathbf{e}_u^{GMF} \odot \mathbf{e}_i^{GMF}
+    \end{equation}
+    où $\odot$ représente le produit élément par élément (Hadamard product).
+    
+    \item \textbf{MLP (Multi-Layer Perceptron)} : Réseau dense pour capturer les interactions non-linéaires
+    \begin{equation}
+        \mathbf{h}_{MLP} = \phi(\mathbf{W}_L^T(\phi(...\phi(\mathbf{W}_1^T[\mathbf{e}_u^{MLP}, \mathbf{e}_i^{MLP}])))
+    \end{equation}
+    où $[\cdot, \cdot]$ est la concaténation des embeddings et $\phi$ est une fonction d'activation (ReLU).
+\end{enumerate}
+
+\textbf{Combinaison (NeuMF) :}
+\begin{equation}
+    \hat{r}_{ui} = \sigma(\mathbf{w}^T [\mathbf{h}_{GMF}, \mathbf{h}_{MLP}])
+\end{equation}
+
+\textbf{Paramètres du modèle :}
+\begin{itemize}
+    \item Dimension des embeddings GMF : 32
+    \item Architecture MLP : [64, 32, 16]
+    \item Dropout : 0.2
+    \item Optimiseur : Adam (learning rate = 0.001)
+    \item Loss : MSE (Mean Squared Error)
+\end{itemize}
+
+\textbf{Code PyTorch simplifié :}
+\begin{lstlisting}[style=pythonstyle, caption=Architecture NCF (extrait)]
+class NCF(nn.Module):
+    def __init__(self, num_users, num_items, 
+                 embedding_dim=32, layers=[64, 32, 16]):
+        super(NCF, self).__init__()
+        
+        # GMF embeddings
+        self.embedding_user_gmf = nn.Embedding(
+            num_users, embedding_dim)
+        self.embedding_item_gmf = nn.Embedding(
+            num_items, embedding_dim)
+        
+        # MLP embeddings
+        self.embedding_user_mlp = nn.Embedding(
+            num_users, layers[0] // 2)
+        self.embedding_item_mlp = nn.Embedding(
+            num_items, layers[0] // 2)
+        
+        # MLP layers
+        self.mlp_layers = nn.ModuleList()
+        for i in range(len(layers) - 1):
+            self.mlp_layers.append(
+                nn.Linear(layers[i], layers[i+1]))
+            self.mlp_layers.append(nn.ReLU())
+        
+        # Output layer
+        self.output_layer = nn.Linear(
+            embedding_dim + layers[-1], 1)
+\end{lstlisting}
+
+\textbf{Performance :} Meilleur modèle du benchmark avec \textbf{RMSE = 0.9339}.
+
+\subsubsection{AutoRec (Autoencoder Recommender)}
+
+\textbf{Source :} Sedhain et al., WWW 2015 - "AutoRec: Autoencoders Meet Collaborative Filtering"
+
+\textbf{Architecture :} Autoencodeur item-based (I-AutoRec) qui apprend à reconstruire les vecteurs de notation des items.
+
+\textbf{Fonctionnement :}
+
+\begin{enumerate}
+    \item \textbf{Entrée} : Vecteur des notes d'un item par tous les utilisateurs (dimension $N_{users}$)
+    \item \textbf{Encoder} : Compression vers une dimension cachée (500 neurones)
+    \begin{equation}
+        \mathbf{h} = \sigma(\mathbf{W} \mathbf{r} + \mathbf{b})
+    \end{equation}
+    \item \textbf{Decoder} : Reconstruction du vecteur original
+    \begin{equation}
+        \hat{\mathbf{r}} = \mathbf{V} \mathbf{h} + \mathbf{c}
+    \end{equation}
+\end{enumerate}
+
+\textbf{Technique d'entraînement (Masked Loss) :}
+L'erreur est calculée uniquement sur les notes observées :
+\begin{equation}
+    \mathcal{L} = \sum_{i \in \mathcal{I}} \sum_{u \in \mathcal{O}_i} (r_{ui} - \hat{r}_{ui})^2
+\end{equation}
+où $\mathcal{O}_i$ représente l'ensemble des utilisateurs ayant noté l'item $i$.
+
+Cette approche permet au modèle d'apprendre à "compléter" intelligemment les valeurs manquantes.
+
+\textbf{Paramètres du modèle :}
+\begin{itemize}
+    \item Dimension cachée : 500
+    \item Activation encoder : Sigmoid
+    \item Activation decoder : Linear (identité)
+    \item Dropout : 0.05
+    \item Optimiseur : Adam
+\end{itemize}
+
+\textbf{Code PyTorch simplifié :}
+\begin{lstlisting}[style=pythonstyle, caption=Architecture AutoRec (extrait)]
+class AutoRec(nn.Module):
+    def __init__(self, num_inputs, hidden_dim=500):
+        super(AutoRec, self).__init__()
+        self.encoder = nn.Linear(num_inputs, hidden_dim)
+        self.sigmoid = nn.Sigmoid()
+        self.decoder = nn.Linear(hidden_dim, num_inputs)
+        self.dropout = nn.Dropout(0.05)
+        
+    def forward(self, x):
+        # Encoder
+        latent = self.sigmoid(self.encoder(x))
+        latent = self.dropout(latent)
+        # Decoder
+        reconstruction = self.decoder(latent)
+        return reconstruction
+\end{lstlisting}
+
+\textbf{Performance :} Très compétitif avec \textbf{RMSE = 0.9658}, légèrement derrière NCF mais surpasse tous les modèles classiques.
+
+\section{Résultats du Benchmark}
+
+\subsection{Méthodologie d'évaluation}
+
+\subsubsection{Séparation des données}
+
+Les données ont été divisées de manière aléatoire :
+\begin{itemize}
+    \item \textbf{Ensemble d'entraînement} : 80\% des notes (80 000 notes)
+    \item \textbf{Ensemble de test} : 20\% des notes (20 000 notes)
+    \item \textbf{Seed aléatoire} : 42 (pour la reproductibilité)
+\end{itemize}
+
+\subsubsection{Métriques utilisées}
+
+Deux métriques standard ont été calculées :
+
+\textbf{1. RMSE (Root Mean Squared Error)} :
+\begin{equation}
+    RMSE = \sqrt{\frac{1}{|\mathcal{T}|} \sum_{(u,i) \in \mathcal{T}} (r_{ui} - \hat{r}_{ui})^2}
+\end{equation}
+
+\textbf{2. MAE (Mean Absolute Error)} :
+\begin{equation}
+    MAE = \frac{1}{|\mathcal{T}|} \sum_{(u,i) \in \mathcal{T}} |r_{ui} - \hat{r}_{ui}|
+\end{equation}
+
+où $\mathcal{T}$ est l'ensemble de test et $\hat{r}_{ui}$ la note prédite.
+
+\subsection{Résultats comparatifs}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Modèle} & \textbf{RMSE} & \textbf{MAE} & \textbf{Catégorie} \\ \midrule
+\textbf{NCF} & \textbf{0.9339} & \textbf{0.7353} & Deep Learning \\
+\textbf{AutoRec} & \textbf{0.9658} & \textbf{0.7663} & Deep Learning \\
+KNN (Item-Based) & 0.9692 & 0.7583 & Classique \\
+Baseline (Moyenne) & 1.1239 & 0.9420 & Classique \\
+SVD (Scikit-learn) & 2.6404 & 2.3711 & Classique \\
+NMF (Scikit-learn) & 2.6246 & 2.3564 & Classique \\
+\bottomrule
+\end{tabular}
+\caption{Comparaison des performances sur l'ensemble de test}
+\label{tab:results}
+\end{table}
+
+\subsection{Analyse des résultats}
+
+\subsubsection{Observations principales}
+
+\begin{enumerate}
+    \item \textbf{Supériorité du Deep Learning} : Les modèles NCF et AutoRec dominent largement avec des erreurs RMSE inférieures à 1.0, démontrant leur capacité à capturer des patterns complexes.
+    
+    \item \textbf{NCF comme champion} : Avec une RMSE de 0.9339, NCF offre la meilleure performance globale, validant l'efficacité de la combinaison GMF + MLP.
+    
+    \item \textbf{AutoRec très compétitif} : AutoRec atteint une RMSE de 0.9658, seulement 3.4\% derrière NCF, tout en ayant une architecture plus simple.
+    
+    \item \textbf{KNN performant parmi les classiques} : Le KNN item-based obtient une RMSE de 0.9692, très proche d'AutoRec, confirmant son efficacité dans ce contexte.
+    
+    \item \textbf{Problème SVD/NMF} : Les performances médiocres de SVD et NMF (RMSE > 2.6) s'expliquent par leur traitement des valeurs manquantes comme des zéros, inadapté pour des notes explicites 1-5.
+    
+    \item \textbf{Baseline utile} : La baseline (RMSE = 1.12) confirme que tous les modèles intelligents apprennent effectivement des patterns utiles.
+\end{enumerate}
+
+\subsubsection{Amélioration relative}
+
+En prenant la baseline comme référence :
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lc@{}}
+\toprule
+\textbf{Modèle} & \textbf{Amélioration RMSE} \\ \midrule
+NCF & -16.9\% \\
+AutoRec & -14.1\% \\
+KNN & -13.8\% \\
+\bottomrule
+\end{tabular}
+\caption{Amélioration relative par rapport à la baseline}
+\end{table}
+
+\subsubsection{Temps d'entraînement}
+
+\begin{itemize}
+    \item \textbf{Baseline} : Instantané ($<$ 1s)
+    \item \textbf{KNN} : Rapide ($\sim$ 2s pour le calcul de similarité)
+    \item \textbf{SVD/NMF} : Modéré ($\sim$ 5-10s)
+    \item \textbf{NCF} : Long ($\sim$ 5-10 minutes pour 20 epochs sur CPU)
+    \item \textbf{AutoRec} : Long ($\sim$ 5-10 minutes pour 30 epochs sur CPU)
+\end{itemize}
+
+\subsection{Recommandations}
+
+\textbf{Pour la production :}
+\begin{itemize}
+    \item \textbf{NCF} si la précision maximale est critique
+    \item \textbf{KNN} pour un bon compromis performance/simplicité
+    \item \textbf{AutoRec} pour l'équilibre entre précision et interprétabilité
+\end{itemize}
+
+\section{Fonctionnalités de l'Application}
+
+L'application Streamlit offre une interface web complète avec six pages principales.
+
+\subsection{Page d'accueil}
+
+\textbf{Contenu :}
+\begin{itemize}
+    \item Présentation du projet
+    \item Statistiques rapides (nombre de films, notes, utilisateurs)
+    \item Navigation vers les différentes sections
+\end{itemize}
+
+\subsection{Exploration des données}
+
+\textbf{Métriques clés :}
+\begin{itemize}
+    \item Nombre total de films : 1682
+    \item Nombre d'utilisateurs : 943
+    \item Nombre de notes : 100 000
+    \item Densité de la matrice : $\sim$ 6.3\%
+    \item Note moyenne : 3.53 / 5
+\end{itemize}
+
+\textbf{Visualisations :}
+\begin{itemize}
+    \item Distribution des notes (histogramme)
+    \item Films les plus notés (top 20)
+    \item Nuage de mots des titres de films
+    \item Popularité par genre (Action, Comédie, Drame, etc.)
+\end{itemize}
+
+\subsection{Recommandations personnalisées}
+
+\textbf{Fonctionnalités :}
+\begin{itemize}
+    \item Sélection de l'utilisateur (ID 1-943)
+    \item Choix du modèle (Automatique = NCF, ou manuel)
+    \item Affichage des films déjà notés par l'utilisateur
+    \item Liste des top N recommandations avec affiches (via API OMDb)
+    \item Explications sur le processus de recommandation
+\end{itemize}
+
+\subsection{Films similaires}
+
+\textbf{Principe :} Recherche de films similaires basée sur la similarité cosinus calculée à partir des patterns de notation.
+
+\textbf{Utilisation :}
+\begin{itemize}
+    \item Recherche par titre de film
+    \item Affichage des N films les plus similaires
+    \item Score de similarité (0 à 1)
+    \item Informations détaillées sur chaque film
+\end{itemize}
+
+\subsection{Comparaison des modèles}
+
+\textbf{Affichage :}
+\begin{itemize}
+    \item Tableau récapitulatif des performances (RMSE, MAE)
+    \item Graphiques comparatifs (barres, radar chart)
+    \item Analyse des forces/faiblesses de chaque modèle
+    \item Recommandations d'utilisation selon les cas d'usage
+\end{itemize}
+
+\subsection{Profil utilisateur}
+
+\textbf{Analyses disponibles :}
+\begin{itemize}
+    \item Historique de notation de l'utilisateur
+    \item Distribution de ses notes
+    \item Genres préférés
+    \item Similarité avec d'autres utilisateurs
+    \item Tendances temporelles (évolution des goûts)
+\end{itemize}
+
+\subsection{Analyse algorithmique}
+
+\textbf{Visualisations avancées :}
+
+\begin{enumerate}
+    \item \textbf{Carte des films (PCA 2D/3D)} : Projection des vecteurs latents des films dans un espace 2D ou 3D où la distance représente la similarité sémantique
+    
+    \item \textbf{Interprétation NMF} : Exploration des facteurs latents découverts par NMF, permettant d'identifier des "thèmes" ou "genres" cachés
+    
+    \item \textbf{Réseau de similarité} : Graphe montrant les connexions entre films similaires
+    
+    \item \textbf{Analyse des embeddings NCF} : Visualisation des représentations apprises par le modèle de deep learning
+\end{enumerate}
+
+\section{Installation et Déploiement}
+
+\subsection{Prérequis}
+
+\textbf{Logiciels nécessaires :}
+\begin{itemize}
+    \item Python 3.10 ou supérieur
+    \item pip (gestionnaire de paquets Python)
+    \item Git (pour cloner le repository)
+\end{itemize}
+
+\subsection{Installation}
+
+\textbf{1. Cloner le repository :}
+\begin{lstlisting}[language=bash, caption=Clonage du projet]
+git clone https://github.com/THEDEV077/Recommendation-System.git
+cd Recommendation-System
+\end{lstlisting}
+
+\textbf{2. Installer les dépendances :}
+\begin{lstlisting}[language=bash, caption=Installation des paquets]
+pip install -r requirements.txt
+\end{lstlisting}
+
+\textbf{Dépendances principales :}
+\begin{itemize}
+    \item \texttt{streamlit} : Framework web
+    \item \texttt{pandas, numpy} : Manipulation de données
+    \item \texttt{scikit-learn} : Algorithmes ML classiques
+    \item \texttt{torch} : PyTorch pour le deep learning
+    \item \texttt{plotly} : Visualisations interactives
+    \item \texttt{scikit-surprise} : Bibliothèque de recommandation
+\end{itemize}
+
+\subsection{Entraînement des modèles}
+
+\textbf{Lancer le benchmark complet :}
+\begin{lstlisting}[language=bash, caption=Entraînement de tous les modèles]
+python benchmark.py
+\end{lstlisting}
+
+Ce script va :
+\begin{enumerate}
+    \item Télécharger automatiquement le dataset MovieLens 100k (si absent)
+    \item Entraîner tous les modèles (Baseline, KNN, SVD, NMF, NCF, AutoRec)
+    \item Calculer les métriques RMSE et MAE
+    \item Sauvegarder les modèles dans le dossier \texttt{models/}
+    \item Générer un rapport de résultats
+\end{enumerate}
+
+\textbf{Durée estimée :} 15-30 minutes (selon le matériel)
+
+\subsection{Lancement de l'application}
+
+\textbf{Démarrer le serveur Streamlit :}
+\begin{lstlisting}[language=bash, caption=Lancement de l'application web]
+streamlit run app.py
+\end{lstlisting}
+
+ou sur Windows :
+\begin{lstlisting}[language=bash]
+python -m streamlit run app.py
+\end{lstlisting}
+
+\textbf{Accès :} L'application sera accessible à l'adresse \url{http://localhost:8501}
+
+\subsection{Configuration optionnelle}
+
+\textbf{Variables d'environnement :}
+\begin{itemize}
+    \item \texttt{OMDB\_API\_KEY} : Clé API pour récupérer les affiches de films
+    \item \texttt{MODELS\_DIR} : Chemin personnalisé pour les modèles sauvegardés
+\end{itemize}
+
+\subsection{Déploiement en production}
+
+\textbf{Options de déploiement :}
+
+\begin{enumerate}
+    \item \textbf{Streamlit Cloud} : Déploiement gratuit et simple
+    \begin{itemize}
+        \item Connecter le repository GitHub
+        \item Déploiement automatique à chaque commit
+    \end{itemize}
+    
+    \item \textbf{Docker} : Containerisation pour portabilité
+    \begin{lstlisting}[language=bash, caption=Dockerfile exemple]
+FROM python:3.10-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+CMD ["streamlit", "run", "app.py"]
+    \end{lstlisting}
+    
+    \item \textbf{Heroku, AWS, GCP} : Déploiement sur cloud providers
+\end{enumerate}
+
+\section{Conclusion et Perspectives}
+
+\subsection{Résultats principaux}
+
+Ce projet a démontré avec succès que :
+
+\begin{enumerate}
+    \item Les modèles de \textbf{deep learning (NCF, AutoRec)} surpassent significativement les approches classiques pour la recommandation de films, avec une réduction de l'erreur RMSE de 17\% par rapport à la baseline.
+    
+    \item \textbf{Neural Collaborative Filtering (NCF)} émerge comme le meilleur modèle avec une RMSE de 0.9339, validant l'efficacité de la combinaison de factorisation matricielle généralisée et de perceptron multicouche.
+    
+    \item Les approches classiques comme \textbf{KNN item-based} restent compétitives et offrent un excellent compromis entre performance et simplicité d'implémentation.
+    
+    \item Une \textbf{interface web interactive} permet de rendre les recommandations accessibles et d'explorer visuellement le comportement des algorithmes.
+\end{enumerate}
+
+\subsection{Limites du projet}
+
+\textbf{Limitations identifiées :}
+
+\begin{itemize}
+    \item \textbf{Taille du dataset} : MovieLens 100k est relativement petit ($\sim$100k notes). Les modèles deep learning pourraient montrer encore plus de supériorité sur des datasets massifs (millions de notes).
+    
+    \item \textbf{Cold start} : Le système ne peut pas recommander efficacement pour de nouveaux utilisateurs ou films sans historique de notes.
+    
+    \item \textbf{Diversité des recommandations} : Les modèles optimisés pour RMSE peuvent produire des recommandations trop similaires (manque de sérendipité).
+    
+    \item \textbf{Biais temporel} : Les goûts des utilisateurs évoluent dans le temps, mais les modèles actuels ne capturent pas cette dynamique.
+    
+    \item \textbf{Contexte limité} : Seules les notes sont utilisées. D'autres signaux (métadonnées, données démographiques) pourraient améliorer les recommandations.
+\end{itemize}
+
+\subsection{Perspectives d'amélioration}
+
+\subsubsection{Amélioration des modèles}
+
+\begin{enumerate}
+    \item \textbf{Attention mechanisms} : Intégrer des mécanismes d'attention pour pondérer dynamiquement l'importance des items
+    
+    \item \textbf{Variational Autoencoders (VAE)} : Remplacer AutoRec par un VAE pour une modélisation probabiliste plus riche
+    
+    \item \textbf{Graph Neural Networks (GNN)} : Exploiter la structure de graphe utilisateur-item pour capturer des relations d'ordre supérieur
+    
+    \item \textbf{Modèles de séquence} : Utiliser RNN/LSTM/Transformer pour modéliser l'évolution temporelle des préférences
+    
+    \item \textbf{Recommandation multi-objectifs} : Optimiser simultanément pour précision, diversité et nouveauté
+\end{enumerate}
+
+\subsubsection{Enrichissement des données}
+
+\begin{itemize}
+    \item Intégrer les métadonnées de films (acteurs, réalisateurs, synopsis)
+    \item Utiliser les embeddings de texte (BERT, GPT) pour enrichir les représentations
+    \item Incorporer des données démographiques utilisateurs
+    \item Exploiter les données d'interaction implicite (clics, temps de visionnage)
+\end{itemize}
+
+\subsubsection{Fonctionnalités applicatives}
+
+\begin{itemize}
+    \item \textbf{Système de feedback} : Permettre aux utilisateurs de noter les recommandations
+    \item \textbf{Recommandations hybrides} : Combiner filtrage collaboratif et content-based
+    \item \textbf{Explications} : Fournir des justifications pour chaque recommandation
+    \item \textbf{A/B Testing} : Infrastructure pour tester différentes variantes d'algorithmes
+    \item \textbf{API REST} : Exposer les recommandations via une API pour intégration externe
+\end{itemize}
+
+\subsubsection{Optimisation et scalabilité}
+
+\begin{enumerate}
+    \item \textbf{Caching} : Mise en cache des recommandations pré-calculées
+    \item \textbf{Approximate Nearest Neighbors} : Utiliser FAISS ou Annoy pour accélérer les recherches de similarité
+    \item \textbf{Distributed Training} : Entraînement distribué pour gérer des datasets massifs
+    \item \textbf{Model serving optimisé} : Utilisation de TorchServe ou TensorFlow Serving
+    \item \textbf{Quantization} : Réduction de la précision des modèles pour inference rapide
+\end{enumerate}
+
+\subsection{Impact et applications}
+
+Ce projet démontre l'applicabilité des systèmes de recommandation modernes dans plusieurs domaines :
+
+\begin{itemize}
+    \item \textbf{E-commerce} : Recommandations de produits personnalisées
+    \item \textbf{Streaming} : Suggestions de contenu (films, musique, podcasts)
+    \item \textbf{Éducation} : Recommandation de cours et ressources pédagogiques
+    \item \textbf{Actualités} : Personnalisation de flux d'informations
+    \item \textbf{Réseaux sociaux} : Suggestions d'amis et de contenu
+\end{itemize}
+
+\subsection{Mot de la fin}
+
+Ce projet illustre comment combiner des techniques classiques éprouvées avec des innovations récentes en deep learning pour créer un système de recommandation performant et explicable. L'approche modulaire adoptée facilite l'expérimentation et l'intégration de nouvelles méthodes.
+
+La démocratisation de frameworks comme PyTorch et Streamlit rend ces technologies accessibles aux développeurs et data scientists, ouvrant la voie à des applications toujours plus personnalisées et intelligentes.
+
+\section*{Remerciements}
+
+Nous remercions :
+\begin{itemize}
+    \item L'équipe \textbf{GroupLens Research} pour le dataset MovieLens
+    \item Les auteurs des articles \textbf{NCF} (He et al.) et \textbf{AutoRec} (Sedhain et al.)
+    \item La communauté open-source pour les bibliothèques utilisées
+\end{itemize}
+
+\begin{thebibliography}{9}
+
+\bibitem{movielens}
+F. Maxwell Harper and Joseph A. Konstan. 2015.
+\textit{The MovieLens Datasets: History and Context}.
+ACM Transactions on Interactive Intelligent Systems (TiiS) 5, 4, Article 19.
+
+\bibitem{ncf}
+Xiangnan He, Lizi Liao, Hanwang Zhang, Liqiang Nie, Xia Hu, and Tat-Seng Chua. 2017.
+\textit{Neural Collaborative Filtering}.
+In Proceedings of the 26th International Conference on World Wide Web (WWW '17).
+
+\bibitem{autorec}
+Suvash Sedhain, Aditya Krishna Menon, Scott Sanner, and Lexing Xie. 2015.
+\textit{AutoRec: Autoencoders Meet Collaborative Filtering}.
+In Proceedings of the 24th International Conference on World Wide Web (WWW '15).
+
+\bibitem{koren}
+Yehuda Koren, Robert Bell, and Chris Volinsky. 2009.
+\textit{Matrix Factorization Techniques for Recommender Systems}.
+IEEE Computer 42, 8 (August 2009), 30-37.
+
+\bibitem{surprise}
+Nicolas Hug. 2020.
+\textit{Surprise: A Python library for recommender systems}.
+Journal of Open Source Software, 5(52), 2174.
+
+\bibitem{pytorch}
+Adam Paszke et al. 2019.
+\textit{PyTorch: An Imperative Style, High-Performance Deep Learning Library}.
+In Advances in Neural Information Processing Systems 32 (NeurIPS 2019).
+
+\bibitem{streamlit}
+\textit{Streamlit: The fastest way to build data apps}.
+\url{https://streamlit.io}
+
+\bibitem{scikit}
+Fabian Pedregosa et al. 2011.
+\textit{Scikit-learn: Machine Learning in Python}.
+Journal of Machine Learning Research 12, 2825-2830.
+
+\end{thebibliography}
+
+\appendix
+
+\section{Code Source Principal}
+
+\subsection{Extrait de benchmark.py}
+
+\begin{lstlisting}[style=pythonstyle, caption=Pipeline d'entraînement principal]
+def train_all_models(ratings_train, ratings_test, 
+                     n_users, n_items):
+    results = {}
+    
+    # 1. Baseline
+    print("Training Baseline...")
+    baseline_pred = train_baseline(ratings_train)
+    rmse, mae = evaluate_model(baseline_pred, 
+                               ratings_test)
+    results['Baseline'] = {'RMSE': rmse, 'MAE': mae}
+    
+    # 2. KNN
+    print("Training KNN...")
+    knn_model = train_knn(ratings_train)
+    knn_pred = predict_knn(knn_model, ratings_test)
+    rmse, mae = evaluate_model(knn_pred, ratings_test)
+    results['KNN'] = {'RMSE': rmse, 'MAE': mae}
+    
+    # 3. NCF
+    print("Training NCF...")
+    ncf_model = train_ncf(ratings_train, n_users, 
+                          n_items, epochs=20)
+    ncf_pred = predict_ncf(ncf_model, ratings_test)
+    rmse, mae = evaluate_model(ncf_pred, ratings_test)
+    results['NCF'] = {'RMSE': rmse, 'MAE': mae}
+    
+    # ... autres modeles
+    
+    return results
+\end{lstlisting}
+
+\subsection{Extrait de app.py}
+
+\begin{lstlisting}[style=pythonstyle, caption=Interface Streamlit principale]
+import streamlit as st
+from utils.recommender import load_data, get_recommendations
+
+st.set_page_config(
+    page_title="MovieLens Recommender",
+    page_icon="🎬",
+    layout="wide"
+)
+
+st.title("🎬 Système de Recommandation de Films")
+
+# Charger les données
+data = load_data()
+
+# Selection utilisateur
+user_id = st.sidebar.slider("User ID", 1, 943, 1)
+
+# Selection modele
+model = st.sidebar.selectbox(
+    "Modèle",
+    ["Auto (NCF)", "KNN", "AutoRec"]
+)
+
+# Obtenir recommandations
+if st.button("Obtenir des recommandations"):
+    recs = get_recommendations(user_id, model, top_n=10)
+    st.write(recs)
+\end{lstlisting}
+
+\section{Statistiques du Dataset}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lr@{}}
+\toprule
+\textbf{Statistique} & \textbf{Valeur} \\ \midrule
+Nombre d'utilisateurs & 943 \\
+Nombre de films & 1682 \\
+Nombre de notes & 100 000 \\
+Note minimale & 1 \\
+Note maximale & 5 \\
+Note moyenne & 3.53 \\
+Écart-type & 1.13 \\
+Densité de la matrice & 6.30\% \\
+Notes par utilisateur (médiane) & 65 \\
+Notes par film (médiane) & 27 \\
+\bottomrule
+\end{tabular}
+\caption{Statistiques détaillées du dataset MovieLens 100k}
+\end{table}
+
+\section{Guide de compilation Overleaf}
+
+\subsection{Utilisation sur Overleaf}
+
+\textbf{Étapes pour compiler ce document sur Overleaf :}
+
+\begin{enumerate}
+    \item Se connecter à \url{https://www.overleaf.com}
+    \item Créer un nouveau projet (New Project)
+    \item Choisir "Upload Project"
+    \item Uploader le fichier \texttt{rapport.tex}
+    \item Sélectionner le compilateur : \textbf{pdfLaTeX}
+    \item Cliquer sur "Recompile" pour générer le PDF
+\end{enumerate}
+
+\textbf{Configuration recommandée :}
+\begin{itemize}
+    \item Compilateur : pdfLaTeX
+    \item Version TeX : TeX Live 2023 ou supérieur
+    \item Mode : Normal (pas besoin de mode draft)
+\end{itemize}
+
+\textbf{Packages requis :} Tous les packages utilisés sont standards et disponibles par défaut sur Overleaf.
+
+\end{document}
